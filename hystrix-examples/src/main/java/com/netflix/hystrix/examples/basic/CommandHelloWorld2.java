@@ -17,12 +17,11 @@ package com.netflix.hystrix.examples.basic;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixObservableCommand;
 import org.junit.Test;
 import rx.Observable;
 import rx.Observer;
 import rx.functions.Action1;
-
-import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,17 +29,21 @@ import static org.junit.Assert.assertEquals;
  * The obligatory "Hello World!" showing a simple implementation of a {@link HystrixCommand}.
  */
 // DONE
-public class CommandHelloWorld extends HystrixCommand<String> {
+public class CommandHelloWorld2 extends HystrixObservableCommand<String> {
 
     private final String name;
 
-    public CommandHelloWorld(String name) {
+    public CommandHelloWorld2(String name) {
 //        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"), Integer.MAX_VALUE);
         super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"));
         this.name = name;
     }
 
     @Override
+    protected Observable<String> construct() {
+        return Observable.just(run());
+    }
+
     protected String run() {
         // todo 芋艿：注释掉原始
         if (true) {
@@ -62,6 +65,7 @@ public class CommandHelloWorld extends HystrixCommand<String> {
         return "Hello " + name + "!unknown";
     }
 
+
 //    @Override
 //    protected String getFallback() {
 //        System.out.println("getFallback " + name + "!");
@@ -71,32 +75,10 @@ public class CommandHelloWorld extends HystrixCommand<String> {
     public static class UnitTest {
 
         @Test
-        public void testSynchronous() {
-            assertEquals("Hello World!", new CommandHelloWorld("World").execute());
-//            assertEquals("Hello Bob!", new CommandHelloWorld("Bob").execute());
-        }
-
-        @Test
-        public void testAsynchronous1() throws Exception {
-            assertEquals("Hello World!", new CommandHelloWorld("World").queue().get());
-            assertEquals("Hello Bob!", new CommandHelloWorld("Bob").queue().get());
-        }
-
-        @Test
-        public void testAsynchronous2() throws Exception {
-
-            Future<String> fWorld = new CommandHelloWorld("World").queue();
-            Future<String> fBob = new CommandHelloWorld("Bob").queue();
-
-            assertEquals("Hello World!", fWorld.get());
-            assertEquals("Hello Bob!", fBob.get());
-        }
-
-        @Test
         public void testObservable() throws Exception {
 
-            Observable<String> fWorld = new CommandHelloWorld("World").observe();
-            Observable<String> fBob = new CommandHelloWorld("Bob").observe();
+            Observable<String> fWorld = new CommandHelloWorld2("World").observe();
+            Observable<String> fBob = new CommandHelloWorld2("Bob").observe();
 
             // blocking
             assertEquals("Hello World!", fWorld.toBlocking().single());
@@ -118,11 +100,11 @@ public class CommandHelloWorld extends HystrixCommand<String> {
 
                 @Override
                 public void onNext(String v) {
-//                    try {
-//                        Thread.sleep(Long.MAX_VALUE);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
+                    try {
+                        Thread.sleep(Long.MAX_VALUE);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     System.out.println("onNext: " + v);
                 }
 
@@ -163,7 +145,7 @@ public class CommandHelloWorld extends HystrixCommand<String> {
 
         @Test
         public void testToObservable() {
-            Observable<String> fWorld = new CommandHelloWorld("World").toObservable();
+            Observable<String> fWorld = new CommandHelloWorld2("World").toObservable();
             fWorld.subscribe(new Observer<String>() {
 
                 @Override
@@ -183,12 +165,11 @@ public class CommandHelloWorld extends HystrixCommand<String> {
 
             });
 
-            // tips ：此处 sleep 的意图，订阅是异步执行处理结果，避免没执行就结束了。
-            try {
-                Thread.sleep(Long.MAX_VALUE);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                Thread.sleep(Long.MAX_VALUE);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
         }
 
     }

@@ -15,18 +15,12 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
-
+import com.netflix.hystrix.*;
+import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
 import org.junit.Test;
 
-import com.netflix.hystrix.HystrixCommand;
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandKey;
-import com.netflix.hystrix.HystrixEventType;
-import com.netflix.hystrix.HystrixInvokableInfo;
-import com.netflix.hystrix.HystrixRequestLog;
-import com.netflix.hystrix.HystrixThreadPoolKey;
-import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Sample {@link HystrixCommand} that implements fallback logic that requires
@@ -38,6 +32,7 @@ import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
  * It needs to be on a separate thread-pool otherwise the first command could saturate it
  * and the fallback command never have a chance to execute.
  */
+// DONE
 public class CommandWithFallbackViaNetwork extends HystrixCommand<String> {
     private final int id;
 

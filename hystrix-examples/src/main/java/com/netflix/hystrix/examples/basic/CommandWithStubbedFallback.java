@@ -15,19 +15,20 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.examples.basic.CommandWithStubbedFallback.UserAccount;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Sample {@link HystrixCommand} that implements a fallback that returns an object
  * combining defaults and injected values from elsewhere in the system (such as
  * HTTP request headers, arguments and cookies or other services previously executed).
  */
+// DONE
 public class CommandWithStubbedFallback extends HystrixCommand<UserAccount> {
 
     private final int customerId;

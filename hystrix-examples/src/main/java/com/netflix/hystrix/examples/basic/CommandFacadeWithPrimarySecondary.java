@@ -15,25 +15,21 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.hystrix.HystrixCommand;
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandKey;
-import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.*;
 import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy;
-import com.netflix.hystrix.HystrixThreadPoolKey;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Sample {@link HystrixCommand} pattern using a semaphore-isolated command
  * that conditionally invokes thread-isolated commands.
  */
+// DONE
 public class CommandFacadeWithPrimarySecondary extends HystrixCommand<String> {
 
     private final static DynamicBooleanProperty usePrimary = DynamicPropertyFactory.getInstance().getBooleanProperty("primarySecondary.usePrimary", true);

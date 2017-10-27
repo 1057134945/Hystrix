@@ -24,6 +24,7 @@ import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy;
  * Example of {@link HystrixCommand} defaulting to use a semaphore isolation strategy
  * when its run() method will not perform network traffic.
  */
+// DONE
 public class CommandUsingSemaphoreIsolation extends HystrixCommand<String> {
 
     private final int id;

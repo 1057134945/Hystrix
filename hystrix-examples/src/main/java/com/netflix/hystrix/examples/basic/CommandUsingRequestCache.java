@@ -15,18 +15,19 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Sample {@link HystrixCommand} showing how implementing the {@link #getCacheKey()} method
  * enables request caching for eliminating duplicate calls within the same request context.
  */
+// DONE
 public class CommandUsingRequestCache extends HystrixCommand<Boolean> {
 
     private final int value;
@@ -38,6 +39,7 @@ public class CommandUsingRequestCache extends HystrixCommand<Boolean> {
 
     @Override
     protected Boolean run() {
+        System.out.println("run:" + value);
         return value == 0 || value % 2 == 0;
     }
 

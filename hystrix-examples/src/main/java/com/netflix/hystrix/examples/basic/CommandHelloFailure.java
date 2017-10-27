@@ -15,18 +15,18 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
+import com.netflix.hystrix.HystrixCommand;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import org.junit.Test;
 
 import java.util.concurrent.Future;
 
-import org.junit.Test;
-
-import com.netflix.hystrix.HystrixCommand;
-import com.netflix.hystrix.HystrixCommandGroupKey;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Sample {@link HystrixCommand} showing a basic fallback implementation.
  */
+// DONE
 public class CommandHelloFailure extends HystrixCommand<String> {
 
     private final String name;

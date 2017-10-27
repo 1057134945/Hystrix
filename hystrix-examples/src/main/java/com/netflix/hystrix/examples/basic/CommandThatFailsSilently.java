@@ -15,23 +15,24 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
+import com.netflix.hystrix.HystrixCommand;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.exception.HystrixRuntimeException;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Test;
-
-import com.netflix.hystrix.HystrixCommand;
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.exception.HystrixRuntimeException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Sample {@link HystrixCommand} that has a fallback implemented
  * that will "fail silent" when failures, rejections, short-circuiting etc occur
  * by returning an empty List.
  */
+// done
 public class CommandThatFailsSilently extends HystrixCommand<List<String>> {
 
     private final boolean throwException;
