@@ -490,7 +490,7 @@ import java.util.concurrent.atomic.AtomicReference;
                 Observable<R> afterCache;
 
                 // put in cache
-                if (requestCacheEnabled && cacheKey != null) {
+                if (requestCacheEnabled && cacheKey != null) { // TODO 芋艿，缓存key
                     // wrap it for caching
                     HystrixCachedObservable<R> toCache = HystrixCachedObservable.from(hystrixObservable, _cmd);
                     HystrixCommandResponseFromCache<R> fromCache = (HystrixCommandResponseFromCache<R>) requestCache.putIfAbsent(cacheKey, toCache);
@@ -552,10 +552,10 @@ import java.util.concurrent.atomic.AtomicReference;
                     return Observable.error(e);
                 }
             } else {
-                return handleSemaphoreRejectionViaFallback();
+                return handleSemaphoreRejectionViaFallback(); // TODO 芋艿，快速失败
             }
         } else {
-            return handleShortCircuitViaFallback();
+            return handleShortCircuitViaFallback(); // TODO 芋艿，快速失败
         }
     }
 
@@ -635,14 +635,14 @@ import java.util.concurrent.atomic.AtomicReference;
         Observable<R> execution;
         if (properties.executionTimeoutEnabled().get()) {
             execution = executeCommandWithSpecifiedIsolation(_cmd)
-                    .lift(new HystrixObservableTimeoutOperator<R>(_cmd));
+                    .lift(new HystrixObservableTimeoutOperator<R>(_cmd)); // TODO 芋艿，超时的处理。
         } else {
             execution = executeCommandWithSpecifiedIsolation(_cmd);
         }
 
         return execution.doOnNext(markEmits)
                 .doOnCompleted(markOnCompleted)
-                .onErrorResumeNext(handleFallback)
+                .onErrorResumeNext(handleFallback) // TODO 芋艿，处理失败，重试？？？
                 .doOnEach(setRequestContext);
     }
 
@@ -709,7 +709,7 @@ import java.util.concurrent.atomic.AtomicReference;
                     }
                     //if it was terminal, then other cleanup handled it
                 }
-            }).subscribeOn(threadPool.getScheduler(new Func0<Boolean>() {
+            }).subscribeOn(threadPool.getScheduler(new Func0<Boolean>() { // TODO 芋艿：Scheduler
                 @Override
                 public Boolean call() {
                     return properties.executionIsolationThreadInterruptOnTimeout().get() && _cmd.isCommandTimedOut.get() == TimedOutStatus.TIMED_OUT;
@@ -1185,6 +1185,8 @@ import java.util.concurrent.atomic.AtomicReference;
                         // stop timer and pass notification through
                         tl.clear();
                         child.onCompleted();
+                    } else {
+                        System.out.println("timeout: " + "onCompleted");
                     }
                 }
 
@@ -1194,6 +1196,8 @@ import java.util.concurrent.atomic.AtomicReference;
                         // stop timer and pass notification through
                         tl.clear();
                         child.onError(e);
+                    } else {
+                        System.out.println("timeout: " + "onError");
                     }
                 }
 
@@ -1201,6 +1205,8 @@ import java.util.concurrent.atomic.AtomicReference;
                 public void onNext(R v) {
                     if (isNotTimedOut()) {
                         child.onNext(v);
+                    } else {
+                        System.out.println("timeout: " + "onNext");
                     }
                 }
 

@@ -17,6 +17,7 @@ package com.netflix.hystrix.examples.basic;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandProperties;
 import org.junit.Test;
 import rx.Observable;
 import rx.Observer;
@@ -36,7 +37,15 @@ public class CommandHelloWorld extends HystrixCommand<String> {
 
     public CommandHelloWorld(String name) {
 //        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"), Integer.MAX_VALUE);
-        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"));
+//        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"));
+
+
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"))
+                // since we're doing work in the run() method that doesn't involve network traffic
+                // and executes very fast with low risk we choose SEMAPHORE isolation
+                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                        .withExecutionIsolationStrategy(HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE)));
+
         this.name = name;
     }
 
@@ -162,8 +171,20 @@ public class CommandHelloWorld extends HystrixCommand<String> {
         }
 
         @Test
+        public void testObservable2() throws Exception {
+            Observable<String> fWorld = new CommandHelloWorld("World").observe();
+
+            try {
+                Thread.sleep(Long.MAX_VALUE);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Test
         public void testToObservable() {
             Observable<String> fWorld = new CommandHelloWorld("World").toObservable();
+
             fWorld.subscribe(new Observer<String>() {
 
                 @Override
