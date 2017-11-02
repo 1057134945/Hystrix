@@ -17,7 +17,6 @@ package com.netflix.hystrix.examples.basic;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandProperties;
 import org.junit.Test;
 import rx.Observable;
 import rx.Observer;
@@ -36,15 +35,15 @@ public class CommandHelloWorld extends HystrixCommand<String> {
     private final String name;
 
     public CommandHelloWorld(String name) {
-//        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"), Integer.MAX_VALUE);
+        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"), Integer.MAX_VALUE);
 //        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"));
 
 
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"))
-                // since we're doing work in the run() method that doesn't involve network traffic
-                // and executes very fast with low risk we choose SEMAPHORE isolation
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withExecutionIsolationStrategy(HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE)));
+//        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"))
+//                // since we're doing work in the run() method that doesn't involve network traffic
+//                // and executes very fast with low risk we choose SEMAPHORE isolation
+//                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+//                        .withExecutionIsolationStrategy(HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE)));
 
         this.name = name;
     }
@@ -52,7 +51,7 @@ public class CommandHelloWorld extends HystrixCommand<String> {
     @Override
     protected String run() {
         // todo 芋艿：注释掉原始
-        if (true) {
+        if (false) {
             System.out.println("Hello " + name + "!");
             return "Hello " + name + "!";
         }
@@ -99,6 +98,12 @@ public class CommandHelloWorld extends HystrixCommand<String> {
 
             assertEquals("Hello World!", fWorld.get());
             assertEquals("Hello Bob!", fBob.get());
+        }
+
+        @Test
+        public void testAsynchronous3() {
+            Future<String> future = new CommandHelloWorld("World").queue();
+            future.cancel(true);
         }
 
         @Test

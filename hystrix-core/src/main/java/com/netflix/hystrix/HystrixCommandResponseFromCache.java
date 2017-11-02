@@ -7,6 +7,7 @@ import rx.functions.Action1;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HystrixCommandResponseFromCache<R> extends HystrixCachedObservable<R> {
+
     private final AbstractCommand<R> originalCommand;
 
     /* package-private */ HystrixCommandResponseFromCache(Observable<R> originalObservable, final AbstractCommand<R> originalCommand) {
@@ -23,6 +24,9 @@ public class HystrixCommandResponseFromCache<R> extends HystrixCachedObservable<
                     public void call(Throwable throwable) {
                         if (completionLogicRun.compareAndSet(false, true)) {
                             commandCompleted(commandToCopyStateInto);
+                            System.out.println("000");
+                        } else {
+                            System.out.println("666");
                         }
                     }
                 })
@@ -31,6 +35,9 @@ public class HystrixCommandResponseFromCache<R> extends HystrixCachedObservable<
                     public void call() {
                         if (completionLogicRun.compareAndSet(false, true)) {
                             commandCompleted(commandToCopyStateInto);
+                            System.out.println("000");
+                        } else {
+                            System.out.println("666");
                         }
                     }
                 })
@@ -39,6 +46,9 @@ public class HystrixCommandResponseFromCache<R> extends HystrixCachedObservable<
                     public void call() {
                         if (completionLogicRun.compareAndSet(false, true)) {
                             commandUnsubscribed(commandToCopyStateInto);
+                            System.out.println("000");
+                        } else {
+                            System.out.println("666");
                         }
                     }
                 });
@@ -52,4 +62,5 @@ public class HystrixCommandResponseFromCache<R> extends HystrixCachedObservable<
         commandToCopyStateInto.executionResult = commandToCopyStateInto.executionResult.addEvent(HystrixEventType.CANCELLED);
         commandToCopyStateInto.executionResult = commandToCopyStateInto.executionResult.setExecutionLatency(-1);
     }
+
 }

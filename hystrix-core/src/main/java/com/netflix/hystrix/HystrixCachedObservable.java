@@ -6,9 +6,19 @@ import rx.functions.Action0;
 import rx.subjects.ReplaySubject;
 
 public class HystrixCachedObservable<R> {
+    /**
+     * 订阅
+     */
     protected final Subscription originalSubscription;
+    /**
+     * 缓存 cachedObservable
+     */
     protected final Observable<R> cachedObservable;
+    /**
+     * TODO 【2006】【outstandingSubscriptions】
+     */
     private volatile int outstandingSubscriptions = 0;
+//    private AtomicInteger outstandingSubscriptions2 = new AtomicInteger(0);
 
     protected HystrixCachedObservable(final Observable<R> originalObservable) {
         ReplaySubject<R> replaySubject = ReplaySubject.create();
@@ -19,16 +29,37 @@ public class HystrixCachedObservable<R> {
                 .doOnUnsubscribe(new Action0() {
                     @Override
                     public void call() {
-                        outstandingSubscriptions--;
+                        outstandingSubscriptions--; // TODO 芋艿，这是为啥
+//                        outstandingSubscriptions2.decrementAndGet();
+                        System.out.println("【sub】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions + "result:" + originalSubscription.isUnsubscribed());
                         if (outstandingSubscriptions == 0) {
+//                        if (outstandingSubscriptions2.decrementAndGet() == 0) {
+//                            if (!originalSubscription.isUnsubscribed()) {
+//                                synchronized (originalSubscription) {
+//                                    if (!originalSubscription.isUnsubscribed()) {
+//                                        originalSubscription.unsubscribe();
+//                                        System.err.println("【666666】【sub】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions);
+//                                    }
+//                                }
+//                            }
+                            System.err.println("[1]" + cachedObservable);
+                            System.err.println("[1]" + originalSubscription.isUnsubscribed());
                             originalSubscription.unsubscribe();
+//                            System.err.println("【666666】【sub】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions);
+//                            System.err.println("【666666】【sub】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions2.get());
                         }
+//                        System.out.println("【sub】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions2.get());
+//                        System.out.println("[1]" + cachedObservable);
                     }
                 })
                 .doOnSubscribe(new Action0() {
                     @Override
                     public void call() {
                         outstandingSubscriptions++;
+//                        System.out.println("【plus】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions);
+//                        outstandingSubscriptions2.incrementAndGet();
+//                        System.out.println("【plus】Thread:" + Thread.currentThread() + "===" + outstandingSubscriptions2.get());
+//                        System.out.println("[0]" + cachedObservable);
                     }
                 });
     }

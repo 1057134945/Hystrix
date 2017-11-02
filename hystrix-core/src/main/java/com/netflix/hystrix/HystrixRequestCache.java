@@ -21,8 +21,6 @@ import com.netflix.hystrix.strategy.concurrency.HystrixRequestVariableHolder;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestVariableLifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.internal.operators.CachedObservable;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -75,13 +73,15 @@ public class HystrixRequestCache {
 
     private static HystrixRequestCache getInstance(RequestCacheKey rcKey, HystrixConcurrencyStrategy concurrencyStrategy) {
         HystrixRequestCache c = caches.get(rcKey);
-        if (c == null) {
+        if (c == null) { // 不存在
+            // 创建 HystrixRequestCache
             HystrixRequestCache newRequestCache = new HystrixRequestCache(rcKey, concurrencyStrategy);
+            // 添加 HystrixRequestCache
             HystrixRequestCache existing = caches.putIfAbsent(rcKey, newRequestCache);
-            if (existing == null) {
+            if (existing == null) { // 添加成功
                 // we won so use the new one
                 c = newRequestCache;
-            } else {
+            } else { // 添加失败
                 // we lost so use the existing
                 c = existing;
             }
@@ -97,12 +97,15 @@ public class HystrixRequestCache {
     // suppressing warnings because we are using a raw Future since it's in a heterogeneous ConcurrentHashMap cache
     @SuppressWarnings({ "unchecked" })
     /* package */<T> HystrixCachedObservable<T> get(String cacheKey) {
+        // 获得 ValueCacheKey
         ValueCacheKey key = getRequestCacheKey(cacheKey);
         if (key != null) {
+            // 获得 cacheInstance
             ConcurrentHashMap<ValueCacheKey, HystrixCachedObservable<?>> cacheInstance = requestVariableForCache.get(concurrencyStrategy);
             if (cacheInstance == null) {
                 throw new IllegalStateException("Request caching is not available. Maybe you need to initialize the HystrixRequestContext?");
             }
+            // 获得 HystrixCachedObservable
             /* look for the stored value */
             return (HystrixCachedObservable<T>) cacheInstance.get(key);
         }
@@ -219,7 +222,13 @@ public class HystrixRequestCache {
     }
 
     private static class RequestCacheKey {
+        /**
+         * 类型
+         */
         private final short type; // used to differentiate between Collapser/Command if key is same between them
+        /**
+         * key
+         */
         private final String key;
         private final HystrixConcurrencyStrategy concurrencyStrategy;
 
