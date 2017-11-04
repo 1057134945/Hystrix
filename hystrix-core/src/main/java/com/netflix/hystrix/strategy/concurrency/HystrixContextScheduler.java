@@ -15,16 +15,20 @@
  */
 package com.netflix.hystrix.strategy.concurrency;
 
-import java.util.concurrent.*;
-
-import rx.*;
+import com.netflix.hystrix.HystrixThreadPool;
+import com.netflix.hystrix.strategy.HystrixPlugins;
+import rx.Scheduler;
+import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Func0;
 import rx.internal.schedulers.ScheduledAction;
-import rx.subscriptions.*;
+import rx.subscriptions.CompositeSubscription;
+import rx.subscriptions.Subscriptions;
 
-import com.netflix.hystrix.HystrixThreadPool;
-import com.netflix.hystrix.strategy.HystrixPlugins;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wrap a {@link Scheduler} so that scheduled actions are wrapped with {@link HystrixContexSchedulerAction} so that
@@ -157,17 +161,21 @@ public class HystrixContextScheduler extends Scheduler {
 
         @Override
         public Subscription schedule(final Action0 action) {
+            // 未订阅，返回
             if (subscription.isUnsubscribed()) {
                 // don't schedule, we are unsubscribed
                 return Subscriptions.unsubscribed();
             }
 
+            // 创建 ScheduledAction
             // This is internal RxJava API but it is too useful.
             ScheduledAction sa = new ScheduledAction(action);
 
+            // 添加到 订阅
             subscription.add(sa);
             sa.addParent(subscription);
 
+            // 提交 任务
             ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.getExecutor();
             FutureTask<?> f = (FutureTask<?>) executor.submit(sa);
             sa.add(new FutureCompleterWithConfigurableInterrupt(f, shouldInterruptThread, executor));
@@ -197,7 +205,9 @@ public class HystrixContextScheduler extends Scheduler {
 
         @Override
         public void unsubscribe() {
+            // 从 线程池 移除 任务
             executor.remove(f);
+            // 根据 shouldInterruptThread 配置，是否强制取消
             if (shouldInterruptThread.call()) {
                 f.cancel(true);
             } else {

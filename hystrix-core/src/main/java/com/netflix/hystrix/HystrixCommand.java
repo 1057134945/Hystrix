@@ -398,7 +398,7 @@ public abstract class HystrixCommand<R> extends AbstractCommand<R> implements Hy
 
                 if (!isExecutionComplete() && interruptOnFutureCancel.get()) {
                     final Thread t = executionThread.get();
-                    if (t != null && !t.equals(Thread.currentThread())) {
+                    if (t != null && !t.equals(Thread.currentThread())) { // 打断
                         t.interrupt();
                     }
                 }

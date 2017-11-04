@@ -17,6 +17,7 @@ package com.netflix.hystrix.examples.basic;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandProperties;
 import org.junit.Test;
 import rx.Observable;
 import rx.Observer;
@@ -35,7 +36,14 @@ public class CommandHelloWorld extends HystrixCommand<String> {
     private final String name;
 
     public CommandHelloWorld(String name) {
-        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"), Integer.MAX_VALUE);
+//        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"), Integer.MAX_VALUE);
+
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"))
+                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                        .withExecutionTimeoutInMilliseconds(Integer.MAX_VALUE)
+                        .withExecutionIsolationStrategy(HystrixCommandProperties.ExecutionIsolationStrategy.THREAD)
+                        .withExecutionIsolationThreadInterruptOnFutureCancel(true)));
+
 //        super(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"));
 
 
@@ -62,7 +70,9 @@ public class CommandHelloWorld extends HystrixCommand<String> {
                 Thread.sleep(Long.MAX_VALUE);
                 System.out.println("Hello " + name + "!end");
                 return "Hello " + name + "!success";
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                System.out.println("Hello " + name + "!666");
+
                 e.printStackTrace();
                 return "Hello " + name + "!failure";
             }
@@ -100,10 +110,26 @@ public class CommandHelloWorld extends HystrixCommand<String> {
             assertEquals("Hello Bob!", fBob.get());
         }
 
+        /**
+         *
+         * @throws InterruptedException
+         */
         @Test
-        public void testAsynchronous3() {
-            Future<String> future = new CommandHelloWorld("World").queue();
-            future.cancel(true);
+        public void testAsynchronous3() throws InterruptedException {
+            final Future<String> future = new CommandHelloWorld("World").queue();
+            Thread.sleep(1000L); // {@link HystrixCommand#isExecutedInThread()} 返回true 因为，HystrixCommand 第399行。
+//            future.cancel(true);
+//            System.out.println("状态：" + future.isCancelled());
+
+//            new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    future.cancel(true);
+//                }
+//            }).start();
+            future.cancel(true); // 强制取消
+
+            Thread.sleep(Long.MAX_VALUE);
         }
 
         @Test

@@ -169,16 +169,23 @@ public interface HystrixThreadPool {
         private final int queueSize;
 
         public HystrixThreadPoolDefault(HystrixThreadPoolKey threadPoolKey, HystrixThreadPoolProperties.Setter propertiesDefaults) {
+            // 初始化 HystrixThreadPoolProperties
             this.properties = HystrixPropertiesFactory.getThreadPoolProperties(threadPoolKey, propertiesDefaults);
+            // 获得 HystrixConcurrencyStrategy
             HystrixConcurrencyStrategy concurrencyStrategy = HystrixPlugins.getInstance().getConcurrencyStrategy();
+            // 队列大小
             this.queueSize = properties.maxQueueSize().get();
 
+            // TODO 【2002】【metrics】
             this.metrics = HystrixThreadPoolMetrics.getInstance(threadPoolKey,
-                    concurrencyStrategy.getThreadPool(threadPoolKey, properties),
+                    concurrencyStrategy.getThreadPool(threadPoolKey, properties), // 初始化 ThreadPoolExecutor
                     properties);
-            this.threadPool = this.metrics.getThreadPool();
-            this.queue = this.threadPool.getQueue();
 
+            // 获得 ThreadPoolExecutor
+            this.threadPool = this.metrics.getThreadPool();
+            this.queue = this.threadPool.getQueue(); // 队列
+
+            // TODO 【2002】【metrics】
             /* strategy: HystrixMetricsPublisherThreadPool */
             HystrixMetricsPublisherFactory.createOrRetrievePublisherForThreadPool(threadPoolKey, this.metrics, this.properties);
         }

@@ -61,7 +61,13 @@ import java.util.concurrent.atomic.AtomicReference;
     private static final Logger logger = LoggerFactory.getLogger(AbstractCommand.class);
     protected final HystrixCircuitBreaker circuitBreaker;
 
+    /**
+     * Hystrix 线程池
+     */
     protected final HystrixThreadPool threadPool;
+    /**
+     * Hystrix 线程池 标记
+     */
     protected final HystrixThreadPoolKey threadPoolKey;
 
     protected final HystrixCommandProperties properties;
@@ -80,13 +86,22 @@ import java.util.concurrent.atomic.AtomicReference;
 
     protected final HystrixCommandMetrics metrics;
 
+    /**
+     * Hystrix 命令 标识
+     */
     protected final HystrixCommandKey commandKey;
+    /**
+     * Hystrix 命令 分组
+     */
     protected final HystrixCommandGroupKey commandGroup;
 
     /**
      * Plugin implementations
      */
     protected final HystrixEventNotifier eventNotifier;
+    /**
+     * Hystrix 并发策略
+     */
     protected final HystrixConcurrencyStrategy concurrencyStrategy;
     protected final HystrixCommandExecutionHook executionHook;
 
@@ -174,13 +189,16 @@ import java.util.concurrent.atomic.AtomicReference;
         this.commandGroup = initGroupKey(group);
         this.commandKey = initCommandKey(key, getClass());
         this.properties = initCommandProperties(this.commandKey, propertiesStrategy, commandPropertiesDefaults);
+        // 初始化 threadPoolKey
         this.threadPoolKey = initThreadPoolKey(threadPoolKey, this.commandGroup, this.properties.executionIsolationThreadPoolKeyOverride().get());
         this.metrics = initMetrics(metrics, this.commandGroup, this.threadPoolKey, this.commandKey, this.properties);
         this.circuitBreaker = initCircuitBreaker(this.properties.circuitBreakerEnabled().get(), circuitBreaker, this.commandGroup, this.commandKey, this.properties, this.metrics);
+        // 初始化 threadPool
         this.threadPool = initThreadPool(threadPool, this.threadPoolKey, threadPoolPropertiesDefaults);
 
         //Strategies from plugins
         this.eventNotifier = HystrixPlugins.getInstance().getEventNotifier();
+        // 初始化 并发策略
         this.concurrencyStrategy = HystrixPlugins.getInstance().getConcurrencyStrategy();
         HystrixMetricsPublisherFactory.createOrRetrievePublisherForCommand(this.commandKey, this.commandGroup, this.metrics, this.circuitBreaker, this.properties);
         this.executionHook = initExecutionHook(executionHook);
@@ -239,7 +257,7 @@ import java.util.concurrent.atomic.AtomicReference;
             } else {
                 return threadPoolKey;
             }
-        } else {
+        } else { // threadPoolKeyOverride 可覆盖属性
             // we have a property defining the thread-pool so use it instead
             return HystrixThreadPoolKey.Factory.asKey(threadPoolKeyOverride);
         }
@@ -771,7 +789,7 @@ import java.util.concurrent.atomic.AtomicReference;
                     }
                     //if it was terminal, then other cleanup handled it
                 }
-            }).subscribeOn(threadPool.getScheduler(new Func0<Boolean>() { // TODO 芋艿：Scheduler
+            }).subscribeOn(threadPool.getScheduler(new Func0<Boolean>() {
                 @Override
                 public Boolean call() {
                     return properties.executionIsolationThreadInterruptOnTimeout().get() && _cmd.isCommandTimedOut.get() == TimedOutStatus.TIMED_OUT;
