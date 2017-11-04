@@ -60,7 +60,9 @@ public abstract class HystrixConcurrencyStrategy {
      * <b>Default Implementation</b>
      * <p>
      * Implementation using standard java.util.concurrent.ThreadPoolExecutor
-     * 
+     *
+     * 该方法已经未在使用（估计废弃），逻辑上 {@link #getThreadPool(HystrixThreadPoolKey, HystrixThreadPoolProperties)} 类似。
+     *
      * @param threadPoolKey
      *            {@link HystrixThreadPoolKey} representing the {@link HystrixThreadPool} that this {@link ThreadPoolExecutor} will be used for.
      * @param corePoolSize
@@ -98,6 +100,7 @@ public abstract class HystrixConcurrencyStrategy {
         final int dynamicCoreSize = threadPoolProperties.coreSize().get();
         final int keepAliveTime = threadPoolProperties.keepAliveTimeMinutes().get();
         final int maxQueueSize = threadPoolProperties.maxQueueSize().get();
+
         final BlockingQueue<Runnable> workQueue = getBlockingQueue(maxQueueSize);
 
         if (allowMaximumSizeToDivergeFromCoreSize) {
