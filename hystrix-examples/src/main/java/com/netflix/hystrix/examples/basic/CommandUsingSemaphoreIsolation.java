@@ -19,6 +19,7 @@ import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy;
+import org.junit.Test;
 
 /**
  * Example of {@link HystrixCommand} defaulting to use a semaphore isolation strategy
@@ -34,7 +35,8 @@ public class CommandUsingSemaphoreIsolation extends HystrixCommand<String> {
                 // since we're doing work in the run() method that doesn't involve network traffic
                 // and executes very fast with low risk we choose SEMAPHORE isolation
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withExecutionIsolationStrategy(ExecutionIsolationStrategy.SEMAPHORE)));
+//                        .withExecutionIsolationStrategy(ExecutionIsolationStrategy.SEMAPHORE)));
+                        .withExecutionIsolationStrategy(ExecutionIsolationStrategy.THREAD)));
         this.id = id;
     }
 
@@ -42,7 +44,36 @@ public class CommandUsingSemaphoreIsolation extends HystrixCommand<String> {
     protected String run() {
         // a real implementation would retrieve data from in memory data structure
         // or some other similar non-network involved work
+        if (id == 10) {
+            System.out.println("睡一会");
+            try {
+                Thread.sleep(2000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         return "ValueFromHashMap_" + id;
     }
 
+//    @Override
+//    protected String getFallback() {
+//        if (id == 10) {
+//            System.out.println("睡二会");
+//            try {
+//                Thread.sleep(1000L);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        return "sss";
+//    }
+
+    public static class UnitTest {
+
+        @Test
+        public void case001() {
+            new CommandUsingSemaphoreIsolation(10).execute();
+        }
+
+    }
 }
