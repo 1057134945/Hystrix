@@ -15,11 +15,6 @@
  */
 package com.netflix.hystrix.collapser;
 
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.netflix.hystrix.HystrixCollapserKey;
 import com.netflix.hystrix.HystrixCollapserProperties;
 import com.netflix.hystrix.strategy.HystrixPlugins;
@@ -28,6 +23,10 @@ import com.netflix.hystrix.strategy.concurrency.HystrixRequestVariableHolder;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestVariableLifecycle;
 import com.netflix.hystrix.strategy.properties.HystrixPropertiesFactory;
 import com.netflix.hystrix.util.HystrixTimer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Factory for retrieving the correct instance of a RequestCollapser.
@@ -66,7 +65,6 @@ public class RequestCollapserFactory<BatchReturnType, ResponseType, RequestArgum
         this.scope = scope;
         this.collapserKey = collapserKey;
         this.properties = properties;
-
     }
 
     public HystrixCollapserKey getCollapserKey() {
@@ -100,17 +98,19 @@ public class RequestCollapserFactory<BatchReturnType, ResponseType, RequestArgum
 
     @SuppressWarnings("unchecked")
     private RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType> getCollapserForGlobalScope(HystrixCollapserBridge<BatchReturnType, ResponseType, RequestArgumentType> commandCollapser) {
+        // 已存在
         RequestCollapser<?, ?, ?> collapser = globalScopedCollapsers.get(collapserKey.name());
         if (collapser != null) {
             return (RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType>) collapser;
         }
+        // 不存在，进行创建
         // create new collapser using 'this' first instance as the one that will get cached for future executions ('this' is stateless so we can do that)
         RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType> newCollapser = new RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType>(commandCollapser, properties, timer, concurrencyStrategy);
         RequestCollapser<?, ?, ?> existing = globalScopedCollapsers.putIfAbsent(collapserKey.name(), newCollapser);
-        if (existing == null) {
+        if (existing == null) { // 添加成功
             // we won
             return newCollapser;
-        } else {
+        } else { // 添加失败，使用已存在的
             // we lost ... another thread beat us
             // shutdown the one we created but didn't get stored
             newCollapser.shutdown();
@@ -141,6 +141,7 @@ public class RequestCollapserFactory<BatchReturnType, ResponseType, RequestArgum
     private HystrixRequestVariableHolder<RequestCollapser<?, ?, ?>> getRequestVariableForCommand(final HystrixCollapserBridge<BatchReturnType, ResponseType, RequestArgumentType> commandCollapser) {
         HystrixRequestVariableHolder<RequestCollapser<?, ?, ?>> requestVariable = requestScopedCollapsers.get(commandCollapser.getCollapserKey().name());
         if (requestVariable == null) {
+//            System.out.println("getRequestVariableForCommand: new");
             // create new collapser using 'this' first instance as the one that will get cached for future executions ('this' is stateless so we can do that)
             @SuppressWarnings({ "rawtypes" })
             HystrixRequestVariableHolder newCollapser = new RequestCollapserRequestVariable(commandCollapser, properties, timer, concurrencyStrategy);

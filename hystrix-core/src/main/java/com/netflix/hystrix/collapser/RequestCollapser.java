@@ -15,20 +15,18 @@
  */
 package com.netflix.hystrix.collapser;
 
-import java.lang.ref.Reference;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-
 import com.netflix.hystrix.HystrixCollapserProperties;
 import com.netflix.hystrix.strategy.concurrency.HystrixConcurrencyStrategy;
 import com.netflix.hystrix.strategy.concurrency.HystrixContextCallable;
 import com.netflix.hystrix.util.HystrixTimer.TimerListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+
+import java.lang.ref.Reference;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Requests are submitted to this and batches executed based on size or time. Scoped to either a request or the global application.
@@ -81,6 +79,7 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
         if (!timerListenerRegistered.get() && timerListenerRegistered.compareAndSet(false, true)) {
             /* schedule the collapsing task to be executed every x milliseconds (x defined inside CollapsedTask) */
             timerListenerReference.set(timer.addListener(new CollapsedTask()));
+            System.out.println("submitRequest: 82");
         }
 
         // loop until succeed (compare-and-set spin-loop)
@@ -100,6 +99,7 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
             if (response != null) {
                 return response;
             } else {
+                System.out.print("submitRequest: 101");
                 // this batch can't accept requests so create a new one and set it if another thread doesn't beat us
                 createNewBatchAndExecutePreviousIfNeeded(b);
             }
@@ -120,6 +120,7 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
      * Called from RequestVariable.shutdown() to unschedule the task.
      */
     public void shutdown() {
+//        System.out.println("shutdown");
         RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> currentBatch = batch.getAndSet(null);
         if (currentBatch != null) {
             currentBatch.shutdown();
@@ -152,6 +153,7 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
                         // 1) it can be null if it got shutdown
                         // 2) we don't execute this batch if it has no requests and let it wait until next tick to be executed
                         if (currentBatch != null && currentBatch.getSize() > 0) {
+                            System.out.println("CollapsedTask ：" + this);
                             // do execution within context of wrapped Callable
                             createNewBatchAndExecutePreviousIfNeeded(currentBatch);
                         }
@@ -169,6 +171,7 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
         @Override
         public void tick() {
             try {
+//                System.out.println("tick");
                 callableWithContextOfParent.call();
             } catch (Exception e) {
                 logger.error("Error occurred trying to execute callable inside CollapsedTask from Timer.", e);

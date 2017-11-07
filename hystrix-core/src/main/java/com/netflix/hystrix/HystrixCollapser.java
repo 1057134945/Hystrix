@@ -382,9 +382,11 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
         return Observable.defer(new Func0<Observable<ResponseType>>() {
             @Override
             public Observable<ResponseType> call() {
+                // // 缓存开关、缓存KEY
                 final boolean isRequestCacheEnabled = getProperties().requestCacheEnabled().get();
                 final String cacheKey = getCacheKey();
 
+                // 优先从缓存中获取
                 /* try from cache first */
                 if (isRequestCacheEnabled) {
                     HystrixCachedObservable<ResponseType> fromCache = requestCache.get(cacheKey);
@@ -394,19 +396,25 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
                     }
                 }
 
+                // 获得 RequestCollapser
                 RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType> requestCollapser = collapserFactory.getRequestCollapser(collapserInstanceWrapper);
+
+                // 提交 命令请求
                 Observable<ResponseType> response = requestCollapser.submitRequest(getRequestArgument());
 
+                // 获得 缓存Observable
                 if (isRequestCacheEnabled && cacheKey != null) {
                     HystrixCachedObservable<ResponseType> toCache = HystrixCachedObservable.from(response);
                     HystrixCachedObservable<ResponseType> fromCache = requestCache.putIfAbsent(cacheKey, toCache);
                     if (fromCache == null) {
                         return toCache.toObservable();
                     } else {
-                        toCache.unsubscribe();
+                        toCache.unsubscribe(); // 取消订阅
                         return fromCache.toObservable();
                     }
                 }
+
+                // 获得 非缓存Observable
                 return response;
             }
         });

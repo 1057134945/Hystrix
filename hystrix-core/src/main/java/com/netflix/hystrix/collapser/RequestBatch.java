@@ -15,21 +15,19 @@
  */
 package com.netflix.hystrix.collapser;
 
+import com.netflix.hystrix.HystrixCollapser.CollapsedRequest;
+import com.netflix.hystrix.HystrixCollapserProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+import rx.functions.Action0;
+import rx.functions.Action1;
+
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Action1;
-
-import com.netflix.hystrix.HystrixCollapser.CollapsedRequest;
-import com.netflix.hystrix.HystrixCollapserProperties;
 
 /**
  * A batch of requests collapsed together by a RequestCollapser instance. When full or time has expired it will execute and stop accepting further submissions.
@@ -61,7 +59,7 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
     /**
      * @return Observable if offer accepted, null if batch is full, already started or completed
      */
-    public Observable<ResponseType> offer(RequestArgumentType arg) {
+    public Observable<ResponseType>  offer(RequestArgumentType arg) {
         /* short-cut - if the batch is started we reject the offer */
         if (batchStarted.get()) {
             return null;
@@ -77,7 +75,7 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
                     return null;
                 }
 
-                if (argumentMap.size() >= maxBatchSize) {
+                if (argumentMap.size() >= maxBatchSize) { // TODO 会不会超过
                     return null;
                 } else {
                     CollapsedRequestSubject<ResponseType, RequestArgumentType> collapsedRequest =

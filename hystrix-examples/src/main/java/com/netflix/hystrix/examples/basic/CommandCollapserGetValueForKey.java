@@ -15,23 +15,16 @@
  */
 package com.netflix.hystrix.examples.basic;
 
-import static org.junit.Assert.*;
+import com.netflix.hystrix.*;
+import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Future;
 
-import org.junit.Test;
-
-import com.netflix.hystrix.HystrixCollapser;
-import com.netflix.hystrix.HystrixCommand;
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandKey;
-import com.netflix.hystrix.HystrixEventType;
-import com.netflix.hystrix.HystrixInvokableInfo;
-import com.netflix.hystrix.HystrixRequestLog;
-import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+import static org.junit.Assert.*;
 
 /**
  * Sample {@link HystrixCollapser} that automatically batches multiple requests to execute()/queue()
@@ -63,17 +56,32 @@ public class CommandCollapserGetValueForKey extends HystrixCollapser<List<String
         }
     }
 
+//    @Override
+//    protected Collection<Collection<CollapsedRequest<String, Integer>>> shardRequests(Collection<CollapsedRequest<String, Integer>> collapsedRequests) {
+//        Collection<Collection<CollapsedRequest<String, Integer>>> result = new ArrayList<Collection<CollapsedRequest<String, Integer>>>();
+//        for (CollapsedRequest<String, Integer> request : collapsedRequests) {
+//            result.add(Collections.singleton(request));
+//        }
+//        return result;
+//    }
+
     private static final class BatchCommand extends HystrixCommand<List<String>> {
         private final Collection<CollapsedRequest<String, Integer>> requests;
 
         private BatchCommand(Collection<CollapsedRequest<String, Integer>> requests) {
             super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"))
-                    .andCommandKey(HystrixCommandKey.Factory.asKey("GetValueForKey")));
+                    .andCommandKey(HystrixCommandKey.Factory.asKey("GetValueForKey"))
+
+                    .andCommandPropertiesDefaults(HystrixCommandProperties.defaultSetter().withExecutionTimeoutInMilliseconds(Integer.MAX_VALUE))
+
+            );
             this.requests = requests;
         }
 
         @Override
         protected List<String> run() {
+            System.out.println("run：" + requests.size());
+
             ArrayList<String> response = new ArrayList<String>();
             for (CollapsedRequest<String, Integer> request : requests) {
                 // artificial response for each argument received in the batch
@@ -93,11 +101,15 @@ public class CommandCollapserGetValueForKey extends HystrixCollapser<List<String
                 Future<String> f2 = new CommandCollapserGetValueForKey(2).queue();
                 Future<String> f3 = new CommandCollapserGetValueForKey(3).queue();
                 Future<String> f4 = new CommandCollapserGetValueForKey(4).queue();
+//                Future<String> f41 = new CommandCollapserGetValueForKey(4).queue();
+
+//                Thread.sleep(10000L);
 
                 assertEquals("ValueForKey: 1", f1.get());
                 assertEquals("ValueForKey: 2", f2.get());
                 assertEquals("ValueForKey: 3", f3.get());
                 assertEquals("ValueForKey: 4", f4.get());
+//                assertEquals("ValueForKey: 4", f41.get());
 
                 int numExecuted = HystrixRequestLog.getCurrentRequest().getAllExecutedCommands().size();
 
