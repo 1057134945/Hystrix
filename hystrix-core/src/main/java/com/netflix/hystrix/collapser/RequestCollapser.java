@@ -79,27 +79,30 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
         if (!timerListenerRegistered.get() && timerListenerRegistered.compareAndSet(false, true)) {
             /* schedule the collapsing task to be executed every x milliseconds (x defined inside CollapsedTask) */
             timerListenerReference.set(timer.addListener(new CollapsedTask()));
-            System.out.println("submitRequest: 82");
         }
 
         // loop until succeed (compare-and-set spin-loop)
         while (true) {
+            // 获得 RequestBatch
             final RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> b = batch.get();
             if (b == null) {
                 return Observable.error(new IllegalStateException("Submitting requests after collapser is shutdown"));
             }
 
+            // 添加到 RequestBatch
             final Observable<ResponseType> response;
             if (arg != null) {
                 response = b.offer(arg);
             } else {
                 response = b.offer( (RequestArgumentType) NULL_SENTINEL);
             }
+
+            // 添加成功，返回 Observable
             // it will always get an Observable unless we hit the max batch size
             if (response != null) {
                 return response;
             } else {
-                System.out.print("submitRequest: 101");
+                // 添加失败，执行 RequestBatch ，并创建新的 RequestBatch
                 // this batch can't accept requests so create a new one and set it if another thread doesn't beat us
                 createNewBatchAndExecutePreviousIfNeeded(b);
             }
@@ -153,7 +156,6 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
                         // 1) it can be null if it got shutdown
                         // 2) we don't execute this batch if it has no requests and let it wait until next tick to be executed
                         if (currentBatch != null && currentBatch.getSize() > 0) {
-                            System.out.println("CollapsedTask ：" + this);
                             // do execution within context of wrapped Callable
                             createNewBatchAndExecutePreviousIfNeeded(currentBatch);
                         }
@@ -171,7 +173,6 @@ public class RequestCollapser<BatchReturnType, ResponseType, RequestArgumentType
         @Override
         public void tick() {
             try {
-//                System.out.println("tick");
                 callableWithContextOfParent.call();
             } catch (Exception e) {
                 logger.error("Error occurred trying to execute callable inside CollapsedTask from Timer.", e);

@@ -1,12 +1,12 @@
 /**
  * Copyright 2012 Netflix, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,11 +16,7 @@
 package com.netflix.hystrix;
 
 import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy;
-import com.netflix.hystrix.collapser.CollapserTimer;
-import com.netflix.hystrix.collapser.HystrixCollapserBridge;
-import com.netflix.hystrix.collapser.RealCollapserTimer;
-import com.netflix.hystrix.collapser.RequestCollapser;
-import com.netflix.hystrix.collapser.RequestCollapserFactory;
+import com.netflix.hystrix.collapser.*;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import com.netflix.hystrix.strategy.HystrixPlugins;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
@@ -54,15 +50,13 @@ import java.util.concurrent.Future;
  * <p>
  * It must be stateless or else it will be non-deterministic because most instances are discarded while some are retained and become the
  * "collapsers" for all the ones that are discarded.
- * 
- * @param <BatchReturnType>
- *            The type returned from the {@link HystrixCommand} that will be invoked on batch executions.
- * @param <ResponseType>
- *            The type returned from this command.
- * @param <RequestArgumentType>
- *            The type of the request argument. If multiple arguments are needed, wrap them in another object or a Tuple.
+ *
+ * @param <BatchReturnType>     The type returned from the {@link HystrixCommand} that will be invoked on batch executions.
+ * @param <ResponseType>        The type returned from this command.
+ * @param <RequestArgumentType> The type of the request argument. If multiple arguments are needed, wrap them in another object or a Tuple.
  */
-public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArgumentType> implements HystrixExecutable<ResponseType>, HystrixObservable<ResponseType> {
+public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArgumentType>
+        implements HystrixExecutable<ResponseType>, HystrixObservable<ResponseType> {
 
     static final Logger logger = LoggerFactory.getLogger(HystrixCollapser.class);
 
@@ -94,9 +88,8 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
 
     /**
      * Collapser scoped to {@link Scope#REQUEST} and default configuration.
-     * 
-     * @param collapserKey
-     *            {@link HystrixCollapserKey} that identifies this collapser and provides the key used for retrieving properties, request caches, publishing metrics etc.
+     *
+     * @param collapserKey {@link HystrixCollapserKey} that identifies this collapser and provides the key used for retrieving properties, request caches, publishing metrics etc.
      */
     protected HystrixCollapser(HystrixCollapserKey collapserKey) {
         this(Setter.withCollapserKey(collapserKey).andScope(Scope.REQUEST));
@@ -107,9 +100,8 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * injecting property and strategy overrides and other optional arguments.
      * <p>
      * Null values will result in the default being used.
-     * 
-     * @param setter
-     *            Fluent interface for constructor arguments
+     *
+     * @param setter Fluent interface for constructor arguments
      */
     protected HystrixCollapser(Setter setter) {
         this(setter.collapserKey, setter.scope, new RealCollapserTimer(), setter.propertiesSetter, null);
@@ -187,7 +179,7 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
 
     /**
      * Key of the {@link HystrixCollapser} used for properties, metrics, caches, reporting etc.
-     * 
+     *
      * @return {@link HystrixCollapserKey} identifying this {@link HystrixCollapser} instance
      */
     public HystrixCollapserKey getCollapserKey() {
@@ -206,7 +198,7 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * </ul>
      * <p>
      * Default: {@link Scope#REQUEST} (defined via constructor)
-     * 
+     *
      * @return {@link Scope} that collapsing should be performed within.
      */
     public Scope getScope() {
@@ -215,6 +207,7 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
 
     /**
      * Return the {@link HystrixCollapserMetrics} for this collapser
+     *
      * @return {@link HystrixCollapserMetrics} for this collapser
      */
     public HystrixCollapserMetrics getMetrics() {
@@ -227,7 +220,7 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * Typically this means to take the argument(s) provided to the constructor and return it here.
      * <p>
      * If there are multiple arguments that need to be bundled, create a single object to contain them, or use a Tuple.
-     * 
+     *
      * @return RequestArgumentType
      */
     public abstract RequestArgumentType getRequestArgument();
@@ -242,9 +235,8 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * If a batch or requests needs to be split (sharded) into multiple commands, see {@link #shardRequests} <p>
      * IMPLEMENTATION NOTE: Be fast (ie. <1ms) in this method otherwise it can block the Timer from executing subsequent batches. Do not do any processing beyond constructing the command and returning
      * it.
-     * 
-     * @param requests
-     *            {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} containing {@link CollapsedRequest} objects containing the arguments of each request collapsed in this batch.
+     *
+     * @param requests {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} containing {@link CollapsedRequest} objects containing the arguments of each request collapsed in this batch.
      * @return {@link HystrixCommand}{@code <BatchReturnType>} which when executed will retrieve results for the batch of arguments as found in the Collection of {@link CollapsedRequest} objects
      */
     protected abstract HystrixCommand<BatchReturnType> createCommand(Collection<CollapsedRequest<ResponseType, RequestArgumentType>> requests);
@@ -258,11 +250,10 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * executed for them.
      * <p>
      * By default this method does nothing to the Collection and is a pass-thru.
-     * 
-     * @param requests
-     *            {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} containing {@link CollapsedRequest} objects containing the arguments of each request collapsed in this batch.
+     *
+     * @param requests {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} containing {@link CollapsedRequest} objects containing the arguments of each request collapsed in this batch.
      * @return Collection of {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} objects sharded according to business rules.
-     *         <p>The CollapsedRequest instances should not be modified or wrapped as the CollapsedRequest instance object contains state information needed to complete the execution.
+     * <p>The CollapsedRequest instances should not be modified or wrapped as the CollapsedRequest instance object contains state information needed to complete the execution.
      */
     protected Collection<Collection<CollapsedRequest<ResponseType, RequestArgumentType>>> shardRequests(Collection<CollapsedRequest<ResponseType, RequestArgumentType>> requests) {
         return Collections.singletonList(requests);
@@ -285,32 +276,29 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * <p>
      * Common code when {@code <BatchReturnType>} is {@code List<ResponseType>} is:
      * <p>
-     * 
+     * <p>
      * <pre>
      * int count = 0;
      * for ({@code CollapsedRequest<ResponseType, RequestArgumentType>} request : requests) {
      * &nbsp;&nbsp;&nbsp;&nbsp; request.setResponse(batchResponse.get(count++));
      * }
      * </pre>
-     * 
+     * <p>
      * For example if the types were {@code <List<String>, String, String>}:
      * <p>
-     * 
+     * <p>
      * <pre>
      * int count = 0;
      * for ({@code CollapsedRequest<String, String>} request : requests) {
      * &nbsp;&nbsp;&nbsp;&nbsp; request.setResponse(batchResponse.get(count++));
      * }
      * </pre>
-     * 
-     * @param batchResponse
-     *            The {@code <BatchReturnType>} returned from the {@link HystrixCommand}{@code <BatchReturnType>} command created by {@link #createCommand}.
-     *            <p>
-     * 
-     * @param requests
-     *            {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} containing {@link CollapsedRequest} objects containing the arguments of each request collapsed in this batch.
-     *            <p>
-     *            The {@link CollapsedRequest#setResponse(Object)} or {@link CollapsedRequest#setException(Exception)} must be called on each {@link CollapsedRequest} in the Collection.
+     *
+     * @param batchResponse The {@code <BatchReturnType>} returned from the {@link HystrixCommand}{@code <BatchReturnType>} command created by {@link #createCommand}.
+     *                      <p>
+     * @param requests      {@code Collection<CollapsedRequest<ResponseType, RequestArgumentType>>} containing {@link CollapsedRequest} objects containing the arguments of each request collapsed in this batch.
+     *                      <p>
+     *                      The {@link CollapsedRequest#setResponse(Object)} or {@link CollapsedRequest#setException(Exception)} must be called on each {@link CollapsedRequest} in the Collection.
      */
     protected abstract void mapResponseToRequests(BatchReturnType batchResponse, Collection<CollapsedRequest<ResponseType, RequestArgumentType>> requests);
 
@@ -329,9 +317,9 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * Use {@link #toObservable(rx.Scheduler)} to schedule the callback differently.
      * <p>
      * See https://github.com/Netflix/RxJava/wiki for more information.
-     * 
+     *
      * @return {@code Observable<R>} that executes and calls back with the result of of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through {@link #mapResponseToRequests}
-     *         to transform the {@code <BatchReturnType>} into {@code <ResponseType>}
+     * to transform the {@code <BatchReturnType>} into {@code <ResponseType>}
      */
     public Observable<ResponseType> observe() {
         // use a ReplaySubject to buffer the eagerly subscribed-to Observable
@@ -358,9 +346,9 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * </ul>
      * <p>
      * See https://github.com/Netflix/RxJava/wiki for more information.
-     * 
+     *
      * @return {@code Observable<R>} that lazily executes and calls back with the result of of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through
-     *         {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into {@code <ResponseType>}
+     * {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into {@code <ResponseType>}
      */
     public Observable<ResponseType> toObservable() {
         // when we callback with the data we want to do the work
@@ -372,11 +360,10 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * A lazy {@link Observable} that will execute when subscribed to.
      * <p>
      * See https://github.com/Netflix/RxJava/wiki for more information.
-     * 
-     * @param observeOn
-     *            The {@link Scheduler} to execute callbacks on.
+     *
+     * @param observeOn The {@link Scheduler} to execute callbacks on.
      * @return {@code Observable<R>} that lazily executes and calls back with the result of of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through
-     *         {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into {@code <ResponseType>}
+     * {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into {@code <ResponseType>}
      */
     public Observable<ResponseType> toObservable(Scheduler observeOn) {
         return Observable.defer(new Func0<Observable<ResponseType>>() {
@@ -424,12 +411,11 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * Used for synchronous execution.
      * <p>
      * If {@link Scope#REQUEST} is being used then synchronous execution will only result in collapsing if other threads are running within the same scope.
-     * 
+     *
      * @return ResponseType
-     *         Result of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into
-     *         {@code <ResponseType>}
-     * @throws HystrixRuntimeException
-     *             if an error occurs and a fallback cannot be retrieved
+     * Result of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into
+     * {@code <ResponseType>}
+     * @throws HystrixRuntimeException if an error occurs and a fallback cannot be retrieved
      */
     public ResponseType execute() {
         try {
@@ -454,12 +440,11 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * Used for asynchronous execution.
      * <p>
      * This will queue up the command and return a Future to get the result once it completes.
-     * 
+     *
      * @return ResponseType
-     *         Result of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into
-     *         {@code <ResponseType>}
-     * @throws HystrixRuntimeException
-     *             within an <code>ExecutionException.getCause()</code> (thrown by {@link Future#get}) if an error occurs and a fallback cannot be retrieved
+     * Result of {@link HystrixCommand}{@code <BatchReturnType>} execution after passing through {@link #mapResponseToRequests} to transform the {@code <BatchReturnType>} into
+     * {@code <ResponseType>}
+     * @throws HystrixRuntimeException within an <code>ExecutionException.getCause()</code> (thrown by {@link Future#get}) if an error occurs and a fallback cannot be retrieved
      */
     public Future<ResponseType> queue() {
         return toObservable()
@@ -475,7 +460,7 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * To enable caching override this method and return a string key uniquely representing the state of a command instance.
      * <p>
      * If multiple command instances in the same request scope match keys then only the first will be executed and all others returned from cache.
-     * 
+     *
      * @return String cacheKey or null if not to cache
      */
     protected String getCacheKey() {
@@ -485,7 +470,8 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
     /**
      * Clears all state. If new requests come in instances will be recreated and metrics started from scratch.
      */
-    /* package */static void reset() {
+    /* package */
+    static void reset() {
         RequestCollapserFactory.reset();
     }
 
@@ -512,7 +498,7 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
     public interface CollapsedRequest<ResponseType, RequestArgumentType> {
         /**
          * The request argument passed into the {@link HystrixCollapser} instance constructor which was then collapsed.
-         * 
+         *
          * @return RequestArgumentType
          */
         RequestArgumentType getArgument();
@@ -520,34 +506,31 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
         /**
          * This corresponds in a OnNext(Response); OnCompleted pair of emissions.  It represents a single-value usecase.
          *
-         * @throws IllegalStateException
-         *             if called more than once or after setException/setComplete.
-         * @param response
-         *            ResponseType
+         * @param response ResponseType
+         * @throws IllegalStateException if called more than once or after setException/setComplete.
          */
         void setResponse(ResponseType response);
 
         /**
          * When invoked, any Observer will be OnNexted this value
-         * @throws IllegalStateException
-         *             if called after setException/setResponse/setComplete.
+         *
          * @param response
+         * @throws IllegalStateException if called after setException/setResponse/setComplete.
          */
         void emitResponse(ResponseType response);
 
         /**
          * When set, any Observer will be OnErrored this exception
-         * 
+         *
          * @param exception exception to set on response
-         * @throws IllegalStateException
-         *             if called more than once or after setResponse/setComplete.
+         * @throws IllegalStateException if called more than once or after setResponse/setComplete.
          */
         void setException(Exception exception);
 
         /**
          * When set, any Observer will have an OnCompleted emitted.
          * The intent is to use if after a series of emitResponses
-         *
+         * <p>
          * Note that, unlike the other 3 methods above, this method does not throw an IllegalStateException.
          * This allows Hystrix-core to unilaterally call it without knowing the internal state.
          */
@@ -562,9 +545,9 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
      * Example:
      * <pre> {@code
      *  Setter.withCollapserKey(HystrixCollapserKey.Factory.asKey("CollapserName"))
-                .andScope(Scope.REQUEST);
+     * .andScope(Scope.REQUEST);
      * } </pre>
-     * 
+     *
      * @NotThreadSafe
      */
     public static class Setter {
@@ -580,9 +563,8 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
          * Setter factory method containing required values.
          * <p>
          * All optional arguments can be set via the chained methods.
-         * 
-         * @param collapserKey
-         *            {@link HystrixCollapserKey} that identifies this collapser and provides the key used for retrieving properties, request caches, publishing metrics etc.
+         *
+         * @param collapserKey {@link HystrixCollapserKey} that identifies this collapser and provides the key used for retrieving properties, request caches, publishing metrics etc.
          * @return Setter for fluent interface via method chaining
          */
         public static Setter withCollapserKey(HystrixCollapserKey collapserKey) {
@@ -591,9 +573,8 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
 
         /**
          * {@link Scope} defining what scope the collapsing should occur within
-         * 
+         *
          * @param scope
-         * 
          * @return Setter for fluent interface via method chaining
          */
         public Setter andScope(Scope scope) {
@@ -602,12 +583,11 @@ public abstract class HystrixCollapser<BatchReturnType, ResponseType, RequestArg
         }
 
         /**
-         * @param propertiesSetter
-         *            {@link HystrixCollapserProperties.Setter} that allows instance specific property overrides (which can then be overridden by dynamic properties, see
-         *            {@link HystrixPropertiesStrategy} for
-         *            information on order of precedence).
-         *            <p>
-         *            Will use defaults if left NULL.
+         * @param propertiesSetter {@link HystrixCollapserProperties.Setter} that allows instance specific property overrides (which can then be overridden by dynamic properties, see
+         *                         {@link HystrixPropertiesStrategy} for
+         *                         information on order of precedence).
+         *                         <p>
+         *                         Will use defaults if left NULL.
          * @return Setter for fluent interface via method chaining
          */
         public Setter andCollapserPropertiesDefaults(HystrixCollapserProperties.Setter propertiesSetter) {

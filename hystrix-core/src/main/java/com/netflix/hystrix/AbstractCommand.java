@@ -664,7 +664,7 @@ import java.util.concurrent.atomic.AtomicReference;
             }
         };
 
-        // TODO 【2004】【执行与fallbak】
+        // 失败回退逻辑 Func1
         final Func1<Throwable, Observable<R>> handleFallback = new Func1<Throwable, Observable<R>>() {
             @Override
             public Observable<R> call(Throwable t) {
@@ -705,7 +705,7 @@ import java.util.concurrent.atomic.AtomicReference;
         Observable<R> execution;
         if (properties.executionTimeoutEnabled().get()) {
             execution = executeCommandWithSpecifiedIsolation(_cmd)
-                    .lift(new HystrixObservableTimeoutOperator<R>(_cmd)); // TODO 【2009】【执行超时】
+                    .lift(new HystrixObservableTimeoutOperator<R>(_cmd)); // 执行超时
         } else {
             execution = executeCommandWithSpecifiedIsolation(_cmd);
         }

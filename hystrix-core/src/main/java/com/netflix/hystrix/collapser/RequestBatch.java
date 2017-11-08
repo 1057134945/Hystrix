@@ -60,6 +60,7 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
      * @return Observable if offer accepted, null if batch is full, already started or completed
      */
     public Observable<ResponseType>  offer(RequestArgumentType arg) {
+        // 执行已经开始，添加失败
         /* short-cut - if the batch is started we reject the offer */
         if (batchStarted.get()) {
             return null;
@@ -70,16 +71,18 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
          */
         if (batchLock.readLock().tryLock()) {
             try {
+                // 执行已经开始，添加失败
                 /* double-check now that we have the lock - if the batch is started we reject the offer */
                 if (batchStarted.get()) {
                     return null;
                 }
 
-                if (argumentMap.size() >= maxBatchSize) { // TODO 会不会超过
+                // 超过队列最大长度，添加失败
+                if (argumentMap.size() >= maxBatchSize) {
                     return null;
                 } else {
-                    CollapsedRequestSubject<ResponseType, RequestArgumentType> collapsedRequest =
-                            new CollapsedRequestSubject<ResponseType, RequestArgumentType>(arg, this);
+                    // 创建 CollapsedRequestSubject ，并添加到队列
+                    CollapsedRequestSubject<ResponseType, RequestArgumentType> collapsedRequest = new CollapsedRequestSubject<ResponseType, RequestArgumentType>(arg, this);
                     final CollapsedRequestSubject<ResponseType, RequestArgumentType> existing = (CollapsedRequestSubject<ResponseType, RequestArgumentType>) argumentMap.putIfAbsent(arg, collapsedRequest);
                     /**
                      * If the argument already exists in the batch, then there are 2 options:
@@ -156,19 +159,24 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
          * - check that we only execute once since there's multiple paths to do so (timer, waiting thread or max batch size hit)
          * - close the gate so 'offer' can no longer be invoked and we turn those threads away so they create a new batch
          */
+        // 设置 执行已经开始
         if (batchStarted.compareAndSet(false, true)) {
+            // 获得 写锁
             /* wait for 'offer'/'remove' threads to finish before executing the batch so 'requests' is complete */
             batchLock.writeLock().lock();
 
             try {
+                // 将多个命令请求分片成 N 个【多个命令请求】。
                 // shard batches
                 Collection<Collection<CollapsedRequest<ResponseType, RequestArgumentType>>> shards = commandCollapser.shardRequests(argumentMap.values());
                 // for each shard execute its requests 
                 for (final Collection<CollapsedRequest<ResponseType, RequestArgumentType>> shardRequests : shards) {
                     try {
+                        // 将多个命令请求合并，创建一个 HystrixCommand
                         // create a new command to handle this batch of requests
                         Observable<BatchReturnType> o = commandCollapser.createObservableCommand(shardRequests);
 
+                        // 将一个 HystrixCommand 的执行结果，映射回对应的命令请求们
                         commandCollapser.mapResponseToRequests(o, shardRequests).doOnError(new Action1<Throwable>() {
 
                             /**
@@ -218,6 +226,7 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
                         }).subscribe();
                         
                     } catch (Exception e) {
+                        // 异常
                         logger.error("Exception while creating and queueing command with batch.", e);
                         // if a failure occurs we want to pass that exception to all of the Futures that we've returned
                         for (CollapsedRequest<ResponseType, RequestArgumentType> request : shardRequests) {
@@ -231,6 +240,7 @@ public class RequestBatch<BatchReturnType, ResponseType, RequestArgumentType> {
                 }
 
             } catch (Exception e) {
+                // 异常
                 logger.error("Exception while sharding requests.", e);
                 // same error handling as we do around the shards, but this is a wider net in case the shardRequest method fails
                 for (CollapsedRequest<ResponseType, RequestArgumentType> request : argumentMap.values()) {

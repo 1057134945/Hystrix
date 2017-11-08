@@ -56,7 +56,12 @@ public class CommandCollapserGetValueForKey extends HystrixCollapser<List<String
         }
     }
 
-//    @Override
+    @Override
+    protected String getCacheKey() {
+        return "cache:" + key;
+    }
+
+    //    @Override
 //    protected Collection<Collection<CollapsedRequest<String, Integer>>> shardRequests(Collection<CollapsedRequest<String, Integer>> collapsedRequests) {
 //        Collection<Collection<CollapsedRequest<String, Integer>>> result = new ArrayList<Collection<CollapsedRequest<String, Integer>>>();
 //        for (CollapsedRequest<String, Integer> request : collapsedRequests) {
