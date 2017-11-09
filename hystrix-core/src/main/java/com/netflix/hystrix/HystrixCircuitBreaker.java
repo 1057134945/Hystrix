@@ -15,13 +15,14 @@
  */
 package com.netflix.hystrix;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.netflix.hystrix.HystrixCommandMetrics.HealthCounts;
 import rx.Subscriber;
 import rx.Subscription;
+
+import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Circuit-breaker logic that is hooked into {@link HystrixCommand} execution and will stop allowing executions if failures have gone past the defined threshold.
@@ -140,7 +141,7 @@ public interface HystrixCircuitBreaker {
         private final HystrixCommandMetrics metrics;
 
         enum Status {
-            CLOSED, OPEN, HALF_OPEN;
+            CLOSED, OPEN, HALF_OPEN
         }
 
         private final AtomicReference<Status> status = new AtomicReference<Status>(Status.CLOSED);
@@ -175,6 +176,7 @@ public interface HystrixCircuitBreaker {
 
                         @Override
                         public void onNext(HealthCounts hc) {
+                            System.out.println(new Date() + "：totalRequests" + hc.getTotalRequests()); // 芋艿，用于调试
                             // check if we are past the statisticalWindowVolumeThreshold
                             if (hc.getTotalRequests() < properties.circuitBreakerRequestVolumeThreshold().get()) {
                                 // we are not past the minimum volume threshold for the stat window,
@@ -203,14 +205,18 @@ public interface HystrixCircuitBreaker {
         @Override
         public void markSuccess() {
             if (status.compareAndSet(Status.HALF_OPEN, Status.CLOSED)) {
+                // 清空 Hystrix Metrics 对请求量统计 Observable 的**统计信息**
                 //This thread wins the race to close the circuit - it resets the stream to start it over from 0
                 metrics.resetStream();
+                // 取消原有订阅
                 Subscription previousSubscription = activeSubscription.get();
                 if (previousSubscription != null) {
                     previousSubscription.unsubscribe();
                 }
+                // 发起新的订阅
                 Subscription newSubscription = subscribeToStream();
                 activeSubscription.set(newSubscription);
+                // 设置断路器打开时间为空
                 circuitOpened.set(-1L);
             }
         }
@@ -262,15 +268,19 @@ public interface HystrixCircuitBreaker {
 
         @Override
         public boolean attemptExecution() {
+            // 强制 打开
             if (properties.circuitBreakerForceOpen().get()) {
                 return false;
             }
+            // 强制 关闭
             if (properties.circuitBreakerForceClosed().get()) {
                 return true;
             }
+            // 打开时间为空
             if (circuitOpened.get() == -1) {
                 return true;
             } else {
+                // 满足间隔尝试断路器时间
                 if (isAfterSleepWindow()) {
                     //only the first request after sleep window should execute
                     //if the executing command succeeds, the status will transition to CLOSED

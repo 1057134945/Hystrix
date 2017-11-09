@@ -59,7 +59,7 @@ public class CommandHelloWorld extends HystrixCommand<String> {
     @Override
     protected String run() {
         // todo 芋艿：注释掉原始
-        if (false) {
+        if (true) {
             System.out.println("Hello " + name + "!");
             return "Hello " + name + "!";
         }
@@ -80,18 +80,59 @@ public class CommandHelloWorld extends HystrixCommand<String> {
         return "Hello " + name + "!unknown";
     }
 
-//    @Override
-//    protected String getFallback() {
-//        System.out.println("getFallback " + name + "!");
-//        return "qqq";
-//    }
+    @Override
+    protected String getFallback() {
+        System.out.println("getFallback " + name + "!");
+        return "qqq";
+    }
 
     public static class UnitTest {
 
         @Test
-        public void testSynchronous() {
+        public void testSynchronous() throws InterruptedException {
             assertEquals("Hello World!", new CommandHelloWorld("World").execute());
+
+            Thread.sleep(Long.MAX_VALUE);
+
 //            assertEquals("Hello Bob!", new CommandHelloWorld("Bob").execute());
+        }
+
+        @Test
+        public void testSynchronousMore() throws InterruptedException {
+            while (true) {
+                new CommandHelloWorld("World").execute();
+                Thread.sleep(1000L);
+            }
+        }
+
+        @Test
+        public void testSynchronousMore2() throws InterruptedException {
+            for (int i = 0; i < 20; i++) {
+                new CommandHelloWorld("World").execute();
+                Thread.sleep(1000L);
+//
+            }
+            Thread.sleep(10000L);
+        }
+
+        @Test
+        public void testSynchronousMore3() throws InterruptedException {
+            for (int i = 0; i < 1; i++) {
+                new CommandHelloWorld("World").execute();
+//                Thread.sleep(1000L);
+//
+            }
+            Thread.sleep(11000L);
+        }
+
+        @Test
+        public void testSynchronousMore4() throws InterruptedException {
+            for (int i = 0; i < 30; i++) {
+                new CommandHelloWorld("World").execute();
+//                Thread.sleep(1000L);
+//
+            }
+            Thread.sleep(11000L);
         }
 
         @Test

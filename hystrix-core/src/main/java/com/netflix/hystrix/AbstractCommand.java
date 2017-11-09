@@ -59,6 +59,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /* package */abstract class AbstractCommand<R> implements HystrixInvokableInfo<R>, HystrixObservable<R> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractCommand.class);
+
+    /**
+     * 断路器
+     */
     protected final HystrixCircuitBreaker circuitBreaker;
 
     /**
@@ -195,6 +199,7 @@ import java.util.concurrent.atomic.AtomicReference;
         // 初始化 threadPoolKey
         this.threadPoolKey = initThreadPoolKey(threadPoolKey, this.commandGroup, this.properties.executionIsolationThreadPoolKeyOverride().get());
         this.metrics = initMetrics(metrics, this.commandGroup, this.threadPoolKey, this.commandKey, this.properties);
+        // 初始化 断路器
         this.circuitBreaker = initCircuitBreaker(this.properties.circuitBreakerEnabled().get(), circuitBreaker, this.commandGroup, this.commandKey, this.properties, this.metrics);
         // 初始化 threadPool
         this.threadPool = initThreadPool(threadPool, this.threadPoolKey, threadPoolPropertiesDefaults);
@@ -415,7 +420,9 @@ import java.util.concurrent.atomic.AtomicReference;
         final Action0 unsubscribeCommandCleanup = new Action0() {
             @Override
             public void call() {
+                // 标记尝试失败
                 circuitBreaker.markNonSuccess();
+                //
                 if (_cmd.commandState.compareAndSet(CommandState.OBSERVABLE_CHAIN_CREATED, CommandState.UNSUBSCRIBED)) {
                     // noinspection Duplicates 【add by 芋艿】
                     if (!_cmd.executionResult.containsTerminalEvent()) {
@@ -645,6 +652,7 @@ import java.util.concurrent.atomic.AtomicReference;
                     eventNotifier.markEvent(HystrixEventType.SUCCESS, commandKey);
                     executionResult = executionResult.addEvent((int) latency, HystrixEventType.SUCCESS);
                     eventNotifier.markCommandExecution(getCommandKey(), properties.executionIsolationStrategy().get(), (int) latency, executionResult.getOrderedList());
+                    // 标记尝试成功
                     circuitBreaker.markSuccess();
                 }
             }
@@ -659,6 +667,7 @@ import java.util.concurrent.atomic.AtomicReference;
                     eventNotifier.markEvent(HystrixEventType.SUCCESS, commandKey);
                     executionResult = executionResult.addEvent((int) latency, HystrixEventType.SUCCESS);
                     eventNotifier.markCommandExecution(getCommandKey(), properties.executionIsolationStrategy().get(), (int) latency, executionResult.getOrderedList());
+                    // 标记尝试成功
                     circuitBreaker.markSuccess();
                 }
             }
@@ -668,7 +677,7 @@ import java.util.concurrent.atomic.AtomicReference;
         final Func1<Throwable, Observable<R>> handleFallback = new Func1<Throwable, Observable<R>>() {
             @Override
             public Observable<R> call(Throwable t) {
-                // TODO 【2015】【链路熔断】
+                // 标记尝试失败
                 circuitBreaker.markNonSuccess();
                 // 标记 executionResult 执行异常
                 Exception e = getExceptionFromThrowable(t);
